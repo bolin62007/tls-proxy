@@ -184,7 +184,7 @@ http {
     add_header X-Content-Type-Options nosniff;
 }
 ```
-特别注意 `ssl_ciphers`，因为 tls-client 中只设置了这 6 个目前来说较为安全的加密套件：
+特别注意 `ssl_ciphers`，因为 tls-client 中只设置了这 6 个目前来说较为安全的加密套件（tls-client 仅启用了 TLSv1.2）：
 ```bash
 $ openssl ciphers -V | column -t | grep '\sECDHE' | grep -- '-RSA|-ECDSA' | grep AEAD | sort -k3
 0xC0,0x2B  -  ECDHE-ECDSA-AES128-GCM-SHA256  TLSv1.2  Kx=ECDH      Au=ECDSA  Enc=AESGCM(128)             Mac=AEAD
