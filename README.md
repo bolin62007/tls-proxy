@@ -195,8 +195,8 @@ $ openssl ciphers -V | column -t | grep '\sECDHE' | grep -- '-RSA|-ECDSA' | grep
 0xCC,0xA8  -  ECDHE-RSA-CHACHA20-POLY1305    TLSv1.2  Kx=ECDH      Au=RSA    Enc=CHACHA20/POLY1305(256)  Mac=AEAD
 ```
 如果 tls-client 显示 openssl 握手失败等错误，请检查 nginx 的 `ssl_ciphers` 是否包含上述 6 个加密套件中的至少一个。<br>
-还有，不要问我为什么上面的 `ssl_ciphers` 中没有包含 `CHACHA20-POLY1305`，因为我的 vps 上的 openssl 不支持 CHACHA20。<br>
-如果你的 vps 上的 openssl 支持 CHACHA20，建议在 `ssl_ciphers` 中启用它，因为在不支持 AES 指令的设备上，CHACHA20 更快。
+还有，不要问我为什么上面的 `ssl_ciphers` 中没有包含 `CHACHA20-POLY1305`，因为我 vps 上的 openssl 不支持 CHACHA20。<br>
+如果你 vps 的 openssl 支持 CHACHA20，建议在 `ssl_ciphers` 中启用它，因为在不支持 AES 指令的设备上 CHACHA20 更快。
 
 2、使用 openssl 生成 dhparam.pem 文件（`/etc/nginx/ssl/dhparam.pem`）
 ```bash
