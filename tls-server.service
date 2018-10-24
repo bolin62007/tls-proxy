@@ -5,8 +5,11 @@ After=network.target
 
 [Service]
 Type=simple
-ExecStart=/usr/local/bin/tls-server -j2
 Restart=always
+ExecStart=/bin/sh -c "/usr/local/bin/tls-server -j2"
+
+# 如果你不需要日志，可以使用 `&>/dev/null` 将 stdout 和 stderr 重定向到 /dev/null 以丢弃 tls-server 的日志
+#ExecStart=/bin/sh -c "/usr/local/bin/tls-server -j2 &>/dev/null"
 
 [Install]
 WantedBy=multi-user.target
