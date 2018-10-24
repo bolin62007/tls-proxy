@@ -5,8 +5,11 @@ After=network.target network-online.target
 
 [Service]
 Type=simple
-ExecStart=/bin/sh -c "/usr/local/bin/tls-client -j2 -s www.example.com -c /etc/ssl/cert.pem -P /tls-proxy -H $'Some-Header: some_header_value\r\n'"
 Restart=always
+ExecStart=/bin/sh -c "/usr/local/bin/tls-client -j2 -s www.example.com -c /etc/ssl/cert.pem -P /tls-proxy -H 'Some-Header: some_header_value\r\n'"
+
+# 如果你不需要日志，可以使用 `&>/dev/null` 将 stdout 和 stderr 重定向到 /dev/null 以丢弃 tls-client 的日志
+#ExecStart=/bin/sh -c "/usr/local/bin/tls-client -j2 -s www.example.com -c /etc/ssl/cert.pem -P /tls-proxy -H 'Some-Header: some_header_value\r\n' &>/dev/null"
 
 [Install]
 WantedBy=multi-user.target
