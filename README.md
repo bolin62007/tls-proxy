@@ -162,7 +162,7 @@ $ARCH-gcc -I/tmp/uthash/include -I/tmp/base64/include -I/tmp/libevent/include -I
 - 一个 SSL 证书
 - 一个 Web 服务器
 
-SSL 证书免费的有很多，如果你没有 SSL 证书，请先申请一张（不建议使用自签发的 SSL 证书，因为不会被 tls-client 所信任，除非你将自签发的根证书添加到 tls-client 主机的 CA 文件中）；为什么需要一个域名？因为 tls-client 强制校验 SSL 证书对应的域名，如果 SSL 证书上的域名与指定的域名不一致，则会断开与 Web 服务器的连接；Web 服务器需要配置 HTTPS，以下的 Web 服务器均以 Nginx 为例，其它服务器请自行斟酌。
+SSL 证书免费的有很多，如果你没有 SSL 证书，请先申请一张（不建议使用自签发的 SSL 证书，因为不会被 tls-client 所信任，除非你将自签发的根证书添加到 tls-client 主机的 CA 文件中）；为什么需要一个域名？因为 tls-client 强制校验 SSL 证书对应的域名，如果 SSL 证书上的域名与指定的域名不一致，则会断开与 Web 服务器的连接；Web 服务器需要配置 HTTPS，以下的 Web 服务器均以 Nginx 为例（不建议使用其它 Web 服务器，因使用其它 Web 服务器引发的问题一律不解答）。
 
 **配置 Nginx**
 
@@ -300,13 +300,15 @@ usage: tls-client <OPTIONS>. OPTIONS have these:
 ```
 其中必须要指定的参数有：`-s` 指定服务器的域名、`-c` 指定本机 CA 文件路径、`-P` 指定请求的 URI。因为我们在 Nginx 中配置了自定义头部 `Some-Header: some_header_value\r\n`，所以还需要指定一个 `-H` 参数，注意，此参数指定的 HTTP 头部必须以 `\r\n` 结尾，且必须放在 `$''` 里面（否则不会进行转义），即 `-H $'Some-Header: some_header_value\r\n'`，`-H` 参数中允许设置多个自定义头部（HTTP 协议使用 `\r\n` 作为行结束符）。如果头部设置不正确，则 `tls-client` 会因为收到 `404 Not Found` 响应而提示 `bad response`。tls-client 和 tls-server 一样，默认都是启用一个工作线程，所以如果你需要启用多个线程，请指定 `-j` 参数（不要奇怪 tls-client 的 UDP 监听线程为什么只有一个，因为我需要在内部保持 UDP 的状态，所以必须只能有一个 UDP 套接字，也就是说，tls-client 的 -j 参数只针对 TCP 代理套接字）。
 
-关于 tls-client 的 `-c <cafile_path>` 参数：前面说了，tls-client 会对 SSL 证书进行校验，确认 SSL 证书是否可信，所以 tls-client 需要知道本机的 CA 文件路径（每个发行版的 CA file 文件路径都不太相同，ArchLinux 中是 `/etc/ssl/cert.pem`）。为什么不取消证书验证这个步骤？原因不用我说吧，一切都是为了安全啊。如果你不知道当前系统的 CA 文件路径，请在 Bash 中执行 `curl -v https://www.baidu.com |& awk '/CAfile:/ {print $3}'` 命令，输出的字符串即为本机的 CA 文件路径（别跟我说 curl command not found，要么装 curl，要么自己找 CA file 去）。
+关于 tls-client 的 `-c <cafile_path>` 参数：前面说了，tls-client 会对 SSL 证书进行校验，确认 SSL 证书是否可信，所以 tls-client 需要知道本机的 CA 文件路径（每个发行版的 CA file 文件路径都不太相同，ArchLinux 中是 `/etc/ssl/cert.pem`）。为什么不取消证书验证这个步骤？原因不用我说吧，一切都是为了安全啊。如果你不知道当前系统的 CA 文件路径，请在 Bash 中执行 `curl -v https://www.baidu.com |& awk '/CAfile:/ {print $3}'` 命令，输出的字符串即为本机的 CA 文件路径（别跟我说 `curl command not found`，要么装 curl，要么自己找 CA file 去，实在不行就下载一个 CA file）。
 
 最后，执行 `systemctl daemon-reload` 重载服务文件，然后执行 `systemctl start tls-client.service` 启动 tls-client。
 
+> 你可能注意到了 tls-client.service 服务文件中的 `-H` 参数并不是上文说到的 `-H $'...'` 格式，这里我稍微说一下，因为 systemd 会自动转义 service 文件中特殊字符序列，而在某些发型版中（如 Ubuntu 系列），添加 `$''` 之后会导致解析异常，使得 tls-client 无限 reconnect，所以我干脆就去掉了了 `$''` 转义语法。如果你是在 shell 中直接运行 tls-client，那么还是需要加上 `$''` 的，否则 tls-client 会提示 bad response。
+
 **配置 iptables 规则**
 
-`tls-client` 默认监听地址：`127.0.0.1:60080/tcp`、`127.0.0.1:60080/udp`；TCP 和 UDP 的透明代理都必须使用 iptables-TPROXY 方式（注意不是 iptables-REDIRECT）；这里给个简单的 bash 脚本，示例如何使用 iptables-TPROXY 来透明代理本机以及内网的 TCP 和 UDP 流量（没错，tls-client 一般用在 Linux 网关上，提供全局透明代理，当然也可以在普通 Linux 主机上使用，代理本机的 TCP 和 UDP）。注意，此脚本只是作为一个例子，实际上我们还需要配置分流规则（如 gfwlist、chnroute），如果你需要分流的话，请使用 [ss-tproxy](https://github.com/zfl9/ss-tproxy) 代理脚本。
+`tls-client` 默认监听地址：`127.0.0.1:60080/tcp`、`127.0.0.1:60080/udp`；TCP 和 UDP 的透明代理都必须使用 iptables-TPROXY 方式（注意不是 iptables-REDIRECT）；这里给个简单的 bash 脚本，示例如何使用 iptables-TPROXY 来透明代理本机以及内网的 TCP 和 UDP 流量（tls-client 一般用在 Linux 网关上，提供全局透明代理，当然也可以在普通 Linux 主机上使用，透明代理本机的 TCP 和 UDP）。注意，此脚本只是作为一个例子，实际上我们还需要配置分流规则（如 gfwlist、chnroute），如果你需要分流的话，请使用 [ss-tproxy](https://github.com/zfl9/ss-tproxy) 代理脚本。
 
 ```bash
 #!/bin/bash
